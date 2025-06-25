@@ -20,18 +20,19 @@ st.write('The name on your Smoothie will be:', name_on_order)
 # Load fruit options from the database
 my_dataframe = session.table("smoothies.public.fruit_options").select(col('FRUIT_NAME'))
 
-# Multiselect dropdown to choose ingredients
+fruit_rows = my_dataframe.collect()
+
 ingredients_list = st.multiselect(
     'Choose up to 5 ingredients:',
-    my_dataframe.collect(),  # Need to convert to list of Row for external app
+    fruit_rows,
+    format_func=lambda row: row['FRUIT_NAME'],
     max_selections=5
 )
-
 # Once ingredients are selected
 if ingredients_list:
     st.write(ingredients_list)
 
-    ingredients_string = ' '.join(ingredients_list)
+    ingredients_string = ' '.join([fruit.FRUIT_NAME for fruit in ingredients_list])
     my_insert_stmt = f"""
         INSERT INTO smoothies.public.orders (ingredients, name_on_order)
         VALUES ('{ingredients_string}', '{name_on_order}')
