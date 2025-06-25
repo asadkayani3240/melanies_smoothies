@@ -31,8 +31,7 @@ ingredients_list = st.multiselect(
 if ingredients_list:
     st.write(ingredients_list)
 
-    ingredients_string = ' '.join([row['FRUIT_NAME'] for row in ingredients_list])
-
+    ingredients_string = ' '.join(ingredients_list)
     my_insert_stmt = f"""
         INSERT INTO smoothies.public.orders (ingredients, name_on_order)
         VALUES ('{ingredients_string}', '{name_on_order}')
