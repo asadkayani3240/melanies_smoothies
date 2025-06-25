@@ -1,3 +1,10 @@
-# requirements.txt
+# New section to display smoothiefroot nutrition information
+import requests
+
 smoothiefroot_response = requests.get("https://my.smoothiefroot.com/api/fruit/watermelon")
-st.text(smoothiefroot_response)
+
+if smoothiefroot_response.status_code == 200:
+    nutrition_info = smoothiefroot_response.json()  # Parse JSON body
+    st.json(nutrition_info)  # Nicely formatted JSON in Streamlit
+else:
+    st.error("Failed to fetch nutrition info.")
