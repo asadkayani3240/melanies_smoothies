@@ -1,4 +1,4 @@
-# Import python packages
+# Import Python packages
 import streamlit as st
 from snowflake.snowpark.functions import col
 from snowflake.snowpark import Session
@@ -15,14 +15,12 @@ st.write("Choose the fruits you want in your custom Smoothie!")
 
 # Input name
 name_on_order = st.text_input('Name on Smoothie:')
-st.write('The name on your Smoothie will be:', name_on_order)
+if name_on_order:
+    st.write('The name on your Smoothie will be:', name_on_order)
 
 # Pull fruit data including search term
 my_dataframe = session.table("smoothies.public.fruit_options").select(col('FRUIT_NAME'), col('SEARCH_ON'))
 pd_df = my_dataframe.to_pandas()
-
-# Show raw fruit table if needed
-# st.dataframe(pd_df)
 
 # Fruit picker
 ingredients_list = st.multiselect(
@@ -34,40 +32,42 @@ ingredients_list = st.multiselect(
 # Checkbox for marking as filled
 order_filled = st.checkbox('Mark order as filled')
 
-# Order submission
+# Order submission block
 if ingredients_list:
-    ingredients_string = ''
+    ingredients_string = ' '.join(ingredients_list)  # Clean space handling
 
     for fruit_chosen in ingredients_list:
-        ingredients_string += fruit_chosen + ' '
-
-        # Use SEARCH_ON column
+        # Get the API-safe search term
         search_on = pd_df.loc[pd_df['FRUIT_NAME'] == fruit_chosen, 'SEARCH_ON'].iloc[0]
-
-        # Show search mapping
-        st.caption(f"The search value for {fruit_chosen} is {search_on}.")
 
         # Show nutrition info
         st.subheader(f"{fruit_chosen} Nutrition Information")
-        api_response = requests.get(f"https://my.smoothiefroot.com/api/fruit/{search_on.lower()}")
+        api_url = f"https://my.smoothiefroot.com/api/fruit/{search_on.lower()}"
+        api_response = requests.get(api_url)
+
         if api_response.status_code == 200:
             try:
                 data = api_response.json()
-                if isinstance(data, list):
-                    st.dataframe(data, use_container_width=True)
-                else:
-                    st.write(data)
+                df = pd.DataFrame(data)
+                st.dataframe(df, use_container_width=True)
             except Exception as e:
-                st.error(f"Failed to parse API response: {e}")
+                st.error(f"Failed to parse API response for {fruit_chosen}: {e}")
         else:
-            st.error("Sorry, that fruit is not in our database.")
+            st.error(f"Could not retrieve data for {fruit_chosen}. Check API availability or SEARCH_ON mapping.")
 
-    # Submit to Snowflake
+    # Submit order to Snowflake
     time_to_submit = st.button("Submit Order")
     if time_to_submit and name_on_order:
+        # Escape any single quotes in inputs
+        safe_name = name_on_order.replace("'", "''")
+        safe_ingredients = ingredients_string.replace("'", "''")
+
         insert_stmt = f"""
             INSERT INTO smoothies.public.orders (ingredients, name_on_order, order_filled)
-            VALUES ('{ingredients_string.strip()}', '{name_on_order}', {str(order_filled).upper()})
+            VALUES ('{safe_ingredients}', '{safe_name}', {str(order_filled).upper()})
         """
-        session.sql(insert_stmt).collect()
-        st.success("Your Smoothie is ordered!", icon="✅")
+        try:
+            session.sql(insert_stmt).collect()
+            st.success("Your Smoothie is ordered!", icon="✅")
+        except Exception as err:
+            st.error(f"Failed to submit order: {err}")
