@@ -1,10 +1,5 @@
-# New section to display smoothiefroot nutrition information
-import requests
-
-smoothiefroot_response = requests.get("https://my.smoothiefroot.com/api/fruit/watermelon")
-
-if smoothiefroot_response.status_code == 200:
-    nutrition_info = smoothiefroot_response.json()  # Parse JSON body
-    st.json(nutrition_info)  # Nicely formatted JSON in Streamlit
-else:
-    st.error("Failed to fetch nutrition info.")
+streamlit==1.34.0
+snowflake-connector-python==3.6.0
+snowflake-snowpark-python==1.12.0
+requests==2.31.0
+pandas==2.2.2
