@@ -3,6 +3,7 @@ import streamlit as st
 from snowflake.snowpark.functions import col
 from snowflake.snowpark import Session
 import json
+import requests  # ✅ FIXED: Moved import to the top
 
 # Connect to Snowflake
 cnx = st.connection("snowflake", type="snowflake")
@@ -26,14 +27,16 @@ ingredients_list = st.multiselect(
     fruit_rows,
     max_selections=5
 )
- import requests
- smoothiefroot_response = requests.get("https://my.smoothiefroot.com/api/fruit/watermelon") 
-            if smoothiefroot_response.status_code == 200:
-                nutrition_info = smoothiefroot_response.json()  # Parse JSON response
-                st.subheader("🍉 Watermelon Nutrition Info")
-                st.json(nutrition_info)  # Nicely format the JSON
-            else:
-                st.error("Failed to fetch nutrition info from Smoothiefroot API.")
+
+# ✅ Show nutrition info (always, no dependency on selection)
+smoothiefroot_response = requests.get("https://my.smoothiefroot.com/api/fruit/watermelon") 
+if smoothiefroot_response.status_code == 200:
+    nutrition_info = smoothiefroot_response.json()  # Parse JSON response
+    st.subheader("🍉 Watermelon Nutrition Info")
+    st.json(nutrition_info)  # Nicely format the JSON
+else:
+    st.error("Failed to fetch nutrition info from Smoothiefroot API.")
+
 # Submission logic
 if ingredients_list:
     st.write(ingredients_list)
@@ -48,4 +51,3 @@ if ingredients_list:
             """
             session.sql(my_insert_stmt).collect()
             st.success('Your Smoothie is ordered!', icon="✅")
-
