@@ -42,5 +42,10 @@ if ingredients_list:
             session.sql(my_insert_stmt).collect()
             st.success('Your Smoothie is ordered!', icon="✅")
             import requests
-            smoothiefroot_response = requests.get("https://my.smoothiefroot.com/api/fruit/watermelon")
-            st.text(smoothiefroot_response)
+            smoothiefroot_response = requests.get("https://my.smoothiefroot.com/api/fruit/watermelon") 
+            if smoothiefroot_response.status_code == 200:
+                nutrition_info = smoothiefroot_response.json()  # Parse JSON response
+                st.subheader("🍉 Watermelon Nutrition Info")
+                st.json(nutrition_info)  # Nicely format the JSON
+            else:
+                st.error("Failed to fetch nutrition info from Smoothiefroot API.")
