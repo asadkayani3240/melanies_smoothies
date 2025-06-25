@@ -32,7 +32,7 @@ ingredients_list = st.multiselect(
 # Always call API and show status only
 response = requests.get("https://my.smoothiefroot.com/api/fruit/watermelon")
 if response.status_code == 200:
-    st.success(f"<<Response: {response.status_code}>>")
+    st.success(f"<Response [{response.status_code}]>")
 else:
     st.error(f"❌ Smoothiefroot API failed with status: {response.status_code}")
 
