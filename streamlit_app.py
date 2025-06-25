@@ -29,13 +29,12 @@ ingredients_list = st.multiselect(
 )
 
 # ✅ Show nutrition info (always, no dependency on selection)
-smoothiefroot_response = requests.get("https://my.smoothiefroot.com/api/fruit/watermelon") 
-if smoothiefroot_response.status_code == 200:
-    nutrition_info = smoothiefroot_response.json()  # Parse JSON response
-    st.subheader("🍉 Watermelon Nutrition Info")
-    st.json(nutrition_info)  # Nicely format the JSON
+# Always call API and show status only
+response = requests.get("https://my.smoothiefroot.com/api/fruit/watermelon")
+if response.status_code == 200:
+    st.success(f"✅ Smoothiefroot API status: {response.status_code} OK")
 else:
-    st.error("Failed to fetch nutrition info from Smoothiefroot API.")
+    st.error(f"❌ Smoothiefroot API failed with status: {response.status_code}")
 
 # Submission logic
 if ingredients_list:
