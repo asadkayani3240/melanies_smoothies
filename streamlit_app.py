@@ -2,6 +2,7 @@
 import streamlit as st
 from snowflake.snowpark.functions import col
 from snowflake.snowpark import Session
+import pandas as pd
 import json
 import requests
 
@@ -17,28 +18,37 @@ st.write("Choose the fruits you want in your custom Smoothie!")
 name_on_order = st.text_input('Name on Smoothie:')
 st.write('The name on your Smoothie will be:', name_on_order)
 
-# Fetch fruit list
-my_dataframe = session.table("smoothies.public.fruit_options").select(col('FRUIT_NAME'))
-fruit_rows = [row.FRUIT_NAME for row in my_dataframe.collect()]
+# Fetch fruit list with SEARCH_ON column
+my_dataframe = session.table("smoothies.public.fruit_options").select(col('FRUIT_NAME'), col('SEARCH_ON'))
 
-# Multi-select UI
+# Convert Snowpark DataFrame to Pandas DataFrame for easy querying
+pd_df = my_dataframe.to_pandas()
+
+# Optional: show full fruit list
+# st.dataframe(pd_df)
+
+# Multi-select UI for user to pick ingredients
 ingredients_list = st.multiselect(
     'Choose up to 5 ingredients:',
-    fruit_rows,
+    pd_df['FRUIT_NAME'].tolist(),
     max_selections=5
 )
 
 # Submission logic
 ingredients_string = ''
 if ingredients_list:
-    for fruit in ingredients_list:
-        ingredients_string += fruit + ' '
+    for fruit_chosen in ingredients_list:
+        ingredients_string += fruit_chosen + ' '
+
+        # Find corresponding SEARCH_ON value
+        search_on = pd_df.loc[pd_df['FRUIT_NAME'] == fruit_chosen, 'SEARCH_ON'].iloc[0]
+        st.write(f"The search value for **{fruit_chosen}** is **{search_on}**.")
 
         # Display Nutrition Header
-        st.subheader(f"{fruit} Nutrition Information")
+        st.subheader(f"{fruit_chosen} Nutrition Information")
 
-        # API call for each fruit
-        response = requests.get(f"https://my.smoothiefroot.com/api/fruit/{fruit.lower()}")
+        # API call with search_on value
+        response = requests.get(f"https://my.smoothiefroot.com/api/fruit/{search_on.lower()}")
         if response.status_code == 200:
             try:
                 nutrition_info = response.json()
@@ -49,7 +59,7 @@ if ingredients_list:
             except Exception as e:
                 st.error(f"Error parsing JSON: {e}")
         else:
-            st.error("Sorry, that fruit is not in our database.")
+            st.error("❌ Sorry, that fruit is not in the SmoothieFroot database.")
 
 # Submit Button
 time_to_submit = st.button("Submit Order")
