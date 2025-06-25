@@ -3,7 +3,7 @@ import streamlit as st
 from snowflake.snowpark.functions import col
 from snowflake.snowpark import Session
 import json
-import requests  # ✅ FIXED: Moved import to the top
+import requests
 
 # Connect to Snowflake
 cnx = st.connection("snowflake", type="snowflake")
@@ -28,25 +28,36 @@ ingredients_list = st.multiselect(
     max_selections=5
 )
 
-# ✅ Show nutrition info (always, no dependency on selection)
-# Always call API and show status only
-response = requests.get("https://my.smoothiefroot.com/api/fruit/watermelon")
-if response.status_code == 200:
-    st.success(f"<Response [{response.status_code}]>")
-else:
-    st.error(f"❌ Smoothiefroot API failed with status: {response.status_code}")
-
 # Submission logic
+ingredients_string = ''
 if ingredients_list:
-    st.write(ingredients_list)
-    ingredients_string = ' '.join(ingredients_list)
+    for fruit in ingredients_list:
+        ingredients_string += fruit + ' '
 
-    time_to_submit = st.button("Submit Order")
-    if time_to_submit:
-        if ingredients_string and name_on_order:
-            my_insert_stmt = f"""
-                INSERT INTO smoothies.public.orders (ingredients, name_on_order)
-                VALUES ('{ingredients_string}', '{name_on_order}')
-            """
-            session.sql(my_insert_stmt).collect()
-            st.success('Your Smoothie is ordered!', icon="✅")
+        # Display Nutrition Header
+        st.subheader(f"{fruit} Nutrition Information")
+
+        # API call for each fruit
+        response = requests.get(f"https://my.smoothiefroot.com/api/fruit/{fruit.lower()}")
+        if response.status_code == 200:
+            try:
+                nutrition_info = response.json()
+                if isinstance(nutrition_info, dict):
+                    st.dataframe(nutrition_info, use_container_width=True)
+                else:
+                    st.warning("Unexpected data format from API.")
+            except Exception as e:
+                st.error(f"Error parsing JSON: {e}")
+        else:
+            st.error("Sorry, that fruit is not in our database.")
+
+# Submit Button
+time_to_submit = st.button("Submit Order")
+if time_to_submit:
+    if ingredients_string and name_on_order:
+        my_insert_stmt = f"""
+            INSERT INTO smoothies.public.orders (ingredients, name_on_order)
+            VALUES ('{ingredients_string.strip()}', '{name_on_order}')
+        """
+        session.sql(my_insert_stmt).collect()
+        st.success('Your Smoothie is ordered!', icon="✅")
